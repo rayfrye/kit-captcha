@@ -30,7 +30,7 @@
     <div id="prompt"></div>
     <div id="drawingArea">
       <canvas id="drawCanvas" width="388" height="200" style="border:1px solid #000;"></canvas>
-      <button id="submit">Submit</button>
+      <button id="submit" disabled>Submit</button>
     </div>
     <div id="imageGridContainer" style="display:none;width:388px;border:1px solid #000;">
       <div id="imageGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(100px,1fr)); gap:10px;width:380px;height:200px;"></div>
@@ -56,6 +56,8 @@
         let currentPrompt = null;
 
         function updatePrompt() {
+          const submit = document.getElementById('submit');
+          submit.disabled = true;
           const index = Math.floor(Math.random() * availableWords.length);
           currentPrompt = availableWords[index];
 
@@ -131,7 +133,7 @@
             return;
           }
 
-          document.getElementById('prompt').innerHTML = 'Please verify your humanity by drawing a picture of a <b>' + successId + '</b>.';
+          document.getElementById('prompt').innerHTML = 'Please verify your humanity by selecting the picture of a <b>' + successId + '</b>.';
 
           keys.forEach((key, index) => {
             const img = document.createElement('img');
@@ -149,10 +151,8 @@
             imageGrid.appendChild(imgContainer);
 
             img.parentElement.onclick = () => {
-              //const isSuccess = img.parentElement.getAttribute('data-success') === 'true';
 
               if (key === successId) {
-                // Emit success message to parent window
                 window.top.postMessage("success", '*');
               } else {
                 document.getElementById('prompt').innerHTML = 'You failed to select the correct drawing of a <b>' + successId + '</b>.';

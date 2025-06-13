@@ -11,9 +11,12 @@ function getMousePos(event) {
 }
 
 //Potentially evaluate density of drawing, require a minimum threshold
-//Display how close they are on mouseup
+//Display how close they are on mouseup?
+//This at least prevents blank submissions.
+//It might be interesting to adjust this up to require more drawing.
 function getDrawingDensity() {
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    const submit = document.getElementById('submit');
 
     let nonTransparentPixels = 0;
     for (let i = 3; i < pixels.length; i += 4) {
@@ -21,7 +24,18 @@ function getDrawingDensity() {
     }
 
     const totalPixels = canvas.width * canvas.height;
-    return nonTransparentPixels / totalPixels; // fraction of canvas used
+    var density = nonTransparentPixels / totalPixels;
+
+    // if(density > 0 && density < .05){
+    //     document.getElementById('prompt').innerHTML += '<p>Keep going!</p>';
+    // }
+    if (density >= .01) {
+        submit.disabled = false;
+    } else {
+        submit.disabled = true;
+    }
+    
+    return density;
 }
 
 canvas.addEventListener('mousedown', (event) => {
@@ -41,8 +55,10 @@ canvas.addEventListener('mousemove', (event) => {
 
 canvas.addEventListener('mouseup', () => {
     isMouseDrawing = false;
+    getDrawingDensity();
 });
 
 canvas.addEventListener('mouseleave', () => {
     isMouseDrawing = false;
+    getDrawingDensity();
 });
