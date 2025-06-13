@@ -47,7 +47,6 @@ canvasTouch.addEventListener('touchmove', (e) => {
         ctxTouch.lineTo(pos.x, pos.y);
         ctxTouch.stroke();
     }
-    getDrawingDensityTouch();
 });
 
 canvasTouch.addEventListener('touchend', () => {
