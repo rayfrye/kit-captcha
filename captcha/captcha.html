@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Joel</title>
+  <title>Captcha</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style type="text/css">
@@ -27,26 +27,161 @@
 <body>
   <div id="captcha-container">
     <!-- Add your CAPTCHA here: -->
-    Hello world!
-
-    <!-- We've added a sample button. Feel free to remove it: -->
-    <button id="solve">
-      Solve!
-    </button>
+    <div id="prompt"></div>
+    <div id="drawingArea">
+      <canvas id="drawCanvas" width="388" height="200" style="border:1px solid #000;"></canvas>
+      <button id="submit">Submit</button>
+    </div>
+    <div id="imageGridContainer" style="display:none;width:388px;border:1px solid #000;">
+      <div id="imageGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(100px,1fr)); gap:10px;width:380px;height:200px;"></div>
+    </div>
+    <div id="tryAgain" style="display:none;width:390px;">
+      <button id="tryAgainButton">Try again!</button>
+    </div>
   </div>
-
+  <script src="./src/js/MouseDrawing.js"></script>
+  <script src="./src/js/TouchDrawing.js"></script>
   <script type="text/javascript">
-    (function(window, document){
-      // This is how you tell the parent window that the CAPTCHA was successful.
-      function captchaSuccess() {
-        window.top.postMessage("success", '*');
-      }
+      (function(window, document){
+        
+        // This is how you tell the parent window that the CAPTCHA was successful.
+        function captchaSuccess() {
+          window.top.postMessage("success", '*');
+        }
 
-      // Your CAPTCHA code goes here, we've added a simple example below:
-      document.getElementById('solve')
-           .addEventListener('click', () => captchaSuccess());
+        const noOfDrawings = 6;
+        const promptWords = ["cat", "dog", "fox", "horse", "elephant", "giraffe", "lion", "tiger", "bear", "wolf", "zebra", "panda", "rabbit", "squirrel"];
+        let availableWords = [...promptWords];
+        let usedWords = [];
+        let currentPrompt = null;
 
-    })(window, document);
+        function updatePrompt() {
+          const index = Math.floor(Math.random() * availableWords.length);
+          currentPrompt = availableWords[index];
+
+          availableWords.splice(index, 1);
+          usedWords.push(currentPrompt);
+
+          document.getElementById('prompt').innerHTML = 'Please verify your humanity by drawing a picture of a <b>' + currentPrompt + '</b>.';
+        }
+
+        document.getElementById('submit')
+            .addEventListener('click', () => saveDrawing());
+
+        document.getElementById('tryAgainButton')
+                .addEventListener('click', () => reset());
+
+        function saveDrawing() {
+          let imageDictionary = JSON.parse(localStorage.getItem('captchaImageDictionary')) || {};
+          const canvas = document.getElementById('drawCanvas');
+          const ctx = canvas.getContext('2d');
+          const imageData = canvas.toDataURL("image/png");
+
+          imageDictionary[currentPrompt] = imageData;
+          localStorage.setItem('captchaImageDictionary', JSON.stringify(imageDictionary));
+          
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          if(Object.keys(imageDictionary).length < noOfDrawings){
+            updatePrompt();
+          } else {
+            showImageGrid();
+          }
+        }
+
+        function showImageGrid() {
+          document.getElementById('drawingArea').style.display = 'none';
+          document.getElementById('imageGridContainer').style.display = 'block';
+          document.getElementById('tryAgain').style.display = 'none';
+
+          displayStoredImages();
+        }
+
+        function showDrawingArea() {
+          document.getElementById('drawingArea').style.display = 'block';
+          document.getElementById('imageGridContainer').style.display = 'none';
+          document.getElementById('tryAgain').style.display = 'none';
+        }
+
+        function showTryAgain() {
+          document.getElementById('drawingArea').style.display = 'none';
+          document.getElementById('imageGridContainer').style.display = 'none';
+          document.getElementById('tryAgain').style.display = 'block';
+        }
+
+        function shuffleArray(array) {
+          for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+          }
+          return array;
+        }
+
+        function displayStoredImages() {
+          const successIndex = Math.floor(Math.random() * usedWords.length);
+          let imageDictionary = JSON.parse(localStorage.getItem('captchaImageDictionary')) || {};
+          const imageGrid = document.getElementById('imageGrid');
+          imageGrid.innerHTML = '';
+
+          const keys = shuffleArray(Object.keys(imageDictionary));
+          const successId = keys[successIndex];
+          
+          if (keys.length === 0) {
+            imageGrid.textContent = 'No images stored.';
+            return;
+          }
+
+          document.getElementById('prompt').innerHTML = 'Please verify your humanity by drawing a picture of a <b>' + successId + '</b>.';
+
+          keys.forEach((key, index) => {
+            const img = document.createElement('img');
+            img.src = imageDictionary[key];
+            img.style.width = '100%';
+            img.style.cursor = 'pointer';
+            img.setAttribute('data-image-id', key);
+
+            const imgContainer = document.createElement('div');
+            imgContainer.style.border = '1px solid #ccc';
+            imgContainer.style.padding = '4px';
+            imgContainer.style.borderRadius = '4px';
+            imgContainer.style.height = '75px';
+            imgContainer.appendChild(img);
+            imageGrid.appendChild(imgContainer);
+
+            img.parentElement.onclick = () => {
+              //const isSuccess = img.parentElement.getAttribute('data-success') === 'true';
+
+              if (key === successId) {
+                // Emit success message to parent window
+                window.top.postMessage("success", '*');
+              } else {
+                document.getElementById('prompt').innerHTML = 'You failed to select the correct drawing of a <b>' + successId + '</b>.';
+                showTryAgain();
+              }
+            };
+          });
+        }
+
+        function reset() {
+          availableWords = [...promptWords];
+          usedWords = [];
+          currentPrompt = null;
+          document.getElementById('prompt').textContent = '---';
+          localStorage.removeItem('captchaImageDictionary');
+          const canvas = document.getElementById('drawCanvas');
+          canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+          showDrawingArea();
+          updatePrompt();
+        }
+
+        // Your CAPTCHA code goes here, we've added a simple example below:
+        // document.getElementById('solve')
+        //      .addEventListener('click', () => captchaSuccess());
+        window.addEventListener('load', () => {
+          reset();
+        });
+
+      })(window, document);
   </script>
 </body>
 </html>
