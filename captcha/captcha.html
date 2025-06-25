@@ -28,10 +28,11 @@
   <div id="captcha-container">
     <!-- Add your CAPTCHA here: -->
     <div id="prompt"></div>
+    <div id="timer">Time left: <span id="timeRemaining">30</span> seconds</div>
     <div id="drawingArea">
         <canvas id="drawCanvas" width="388" height="200" style="border:1px solid #000;justify-content: center;"></canvas>
         <div>
-          <input type="color" id="colorPicker" value="#000000"/>
+          <!--input type="color" id="colorPicker" value="#000000"/-->
           <button id="submit" disabled>Submit</button>
         </div>
     </div>
@@ -62,6 +63,9 @@
         let availableWords = [...promptWords];
         let usedWords = [];
         let currentPrompt = null;
+        let timeLeft = 30; // seconds
+        let timerInterval;
+        let successId = null;
 
         //Window load event to configure initial state
         window.addEventListener('load', () => {
@@ -85,6 +89,22 @@
           canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
           showView('drawingArea');
           updatePrompt();
+        }
+
+        function startTimer(duration = 30, onComplete ) {
+          clearInterval(timerInterval);
+          timeLeft = duration;
+          document.getElementById('timeRemaining').textContent = timeLeft;
+
+          timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timeRemaining').textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+              clearInterval(timerInterval);
+              onComplete();
+            }
+          }, 1000);
         }
 
         //Helper function to show/hide views
@@ -111,7 +131,8 @@
           availableWords.splice(index, 1);
           usedWords.push(currentPrompt);
 
-          document.getElementById('prompt').innerHTML = 'Please verify your humanity by drawing a picture of a <b>' + currentPrompt + '</b>.';
+          document.getElementById('prompt').innerHTML = 'Please verify your humanity by drawing a picture of a/an <b>' + currentPrompt + '</b>.';
+          startTimer(timerDuration, saveDrawing);
         }
 
         //Saves the current drawing to local storage and updates the prompt or shows the image grid.
@@ -135,6 +156,7 @@
         
         //Show the image grid and handle user selection.
         function displayStoredImages() {
+          startTimer(timerDuration, failedId);
           showView("imageGridContainer");
           const successIndex = Math.floor(Math.random() * usedWords.length);
           let imageDictionary = JSON.parse(localStorage.getItem('captchaImageDictionary')) || {};
@@ -142,14 +164,14 @@
           imageGrid.innerHTML = '';
 
           const keys = shuffleArray(Object.keys(imageDictionary));
-          const successId = keys[successIndex];
+          successId = keys[successIndex];
           
           if (keys.length === 0) {
             imageGrid.textContent = 'No images stored.';
             return;
           }
 
-          document.getElementById('prompt').innerHTML = 'Please verify your humanity by selecting the picture of a <b>' + successId + '</b>.';
+          document.getElementById('prompt').innerHTML = 'Please verify your humanity by selecting the picture of a/an <b>' + successId + '</b>.';
 
           keys.forEach((key, index) => {
             const img = document.createElement('img');
@@ -169,11 +191,16 @@
               if (key === successId) {
                 window.top.postMessage("success", '*');
               } else {
-                document.getElementById('prompt').innerHTML = 'You failed to select the correct drawing of a <b>' + successId + '</b>.';
-                showView('tryAgain');
+                failedId();
               }
             };
           });
+        }
+
+        function failedId(){
+          clearInterval(timerInterval);
+          document.getElementById('prompt').innerHTML = 'You failed to select the correct drawing of a/an <b>' + successId + '</b>.';
+          showView('tryAgain');
         }
 
       })(window, document);

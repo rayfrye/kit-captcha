@@ -3,9 +3,9 @@ const ctx = canvas.getContext('2d');
 let isMouseDrawing = false;
 let currentColor = '#000000'; // Default color
 
-document.getElementById('colorPicker').addEventListener('input', (e) => {
-    currentColor = e.target.value;
-});
+// document.getElementById('colorPicker').addEventListener('input', (e) => {
+//     currentColor = e.target.value;
+// });
 function getMousePos(event) {
     const rect = canvas.getBoundingClientRect();
     return {
