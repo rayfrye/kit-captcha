@@ -1,7 +1,11 @@
 ﻿const canvas = document.getElementById('drawCanvas');
 const ctx = canvas.getContext('2d');
 let isMouseDrawing = false;
+let currentColor = '#000000'; // Default color
 
+// document.getElementById('colorPicker').addEventListener('input', (e) => {
+//     currentColor = e.target.value;
+// });
 function getMousePos(event) {
     const rect = canvas.getBoundingClientRect();
     return {
@@ -49,6 +53,7 @@ canvas.addEventListener('mousemove', (event) => {
     if (isMouseDrawing) {
         const pos = getMousePos(event);
         ctx.lineTo(pos.x, pos.y);
+        ctx.strokeStyle = currentColor; // Apply current color
         ctx.stroke();
     }
 });
